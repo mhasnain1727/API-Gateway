@@ -32,17 +32,17 @@ const useMongo = !!(process.env.MONGODB_URI && process.env.MONGODB_URI.trim() !=
     // MongoDB for Audit Logs (optional – gateway starts without it if MONGODB_URI not set)
     ...(useMongo
       ? [
-          MongooseModule.forRootAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-              uri: configService.get<string>('MONGODB_URI') || configService.get<string>('mongodb.uri'),
-              dbName: 'ics_gateway_audit',
-              serverSelectionTimeoutMS: 5000,
-              connectTimeoutMS: 5000,
-            }),
-            inject: [ConfigService],
+        MongooseModule.forRootAsync({
+          imports: [ConfigModule],
+          useFactory: async (configService: ConfigService) => ({
+            uri: configService.get<string>('MONGODB_URI') || configService.get<string>('mongodb.uri'),
+            dbName: 'ics_gateway_audit',
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 5000,
           }),
-        ]
+          inject: [ConfigService],
+        }),
+      ]
       : []),
 
     // Rate Limiting (Global)
@@ -66,9 +66,9 @@ const useMongo = !!(process.env.MONGODB_URI && process.env.MONGODB_URI.trim() !=
   providers: useMongo
     ? []
     : [
-        { provide: getConnectionToken(), useValue: null },
-        { provide: AuditLogService, useValue: null },
-      ],
+      { provide: getConnectionToken(), useValue: null },
+      { provide: AuditLogService, useValue: null },
+    ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
@@ -98,6 +98,7 @@ export class AppModule implements NestModule {
         'api/cus/health',
         'api/cus/health/(.*)',
         'api/whms/health',
+        'api/ord/health',
         // Auth endpoints
         'api/iam/auth/login',
         'api/iam/auth/forgot-password',

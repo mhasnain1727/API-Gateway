@@ -55,6 +55,12 @@ export class ProxyMiddleware implements NestMiddleware {
         name: 'Warehouse Service',
         key: 'warehouse-service',
       },
+      {
+        prefix: '/api/ord',
+        target: this.configService.get<string>('services.order', 'http://localhost:3006'),
+        name: 'Order Service',
+        key: 'order-service',
+      },
     ];
 
     this.corsOrigins = this.configService
@@ -84,13 +90,13 @@ export class ProxyMiddleware implements NestMiddleware {
       // Handle proxy errors
       onError: (err, req, res) => {
         this.logger.error(`[${service.name}] Proxy error: ${err.message}`);
-        
+
         // Record failure in circuit breaker
         this.circuitBreaker.recordFailure(service.key, err as Error);
 
         if (!res.headersSent) {
           const retryAfter = Math.ceil(this.circuitBreaker.getTimeUntilRetry(service.key) / 1000);
-          
+
           (res as Response).status(503).json({
             statusCode: 503,
             message: `${service.name} is unavailable`,
@@ -191,12 +197,12 @@ export class ProxyMiddleware implements NestMiddleware {
     // Check circuit breaker
     if (!this.circuitBreaker.canRequest(service.key)) {
       const retryAfter = Math.ceil(this.circuitBreaker.getTimeUntilRetry(service.key) / 1000);
-      
+
       this.logger.warn(`Circuit OPEN for ${service.name} - Request blocked`);
-      
+
       res.setHeader('Retry-After', retryAfter);
       res.setHeader('X-Circuit-State', CircuitState.OPEN);
-      
+
       throw new HttpException(
         {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
@@ -211,7 +217,7 @@ export class ProxyMiddleware implements NestMiddleware {
 
     // Check for request deduplication (for mutation requests with idempotency key)
     const idempotencyKey = req.headers['x-idempotency-key'] as string;
-    
+
     // Only deduplicate POST/PUT/PATCH with idempotency key or GET requests
     if (idempotencyKey || req.method === 'GET') {
       const requestKey = this.deduplication.generateRequestKey({
@@ -223,20 +229,20 @@ export class ProxyMiddleware implements NestMiddleware {
       });
 
       const duplicate = await this.deduplication.checkDuplicate(requestKey);
-      
+
       if (duplicate.isDuplicate) {
         this.logger.debug(`Deduplicated request: ${requestKey}`);
-        
+
         res.setHeader('X-Deduplicated', 'true');
         res.setHeader('X-Request-ID', (req as any).requestId || 'deduplicated');
-        
+
         return res.status(duplicate.statusCode || 200).json(duplicate.response);
       }
 
       // Register this request for deduplication
       if (idempotencyKey) {
         const { onComplete, onError } = this.deduplication.registerRequest(requestKey);
-        
+
         // Store callbacks for later
         (req as any).deduplicationCallbacks = { onComplete, onError };
       }

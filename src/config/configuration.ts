@@ -15,6 +15,7 @@ export default () => ({
     inventory: process.env.INVENTORY_SERVICE_URL || 'http://localhost:3003',
     customer: process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3004',
     warehouse: process.env.WAREHOUSE_SERVICE_URL || 'http://localhost:3005',
+    order: process.env.ORDER_SERVICE_URL || 'http://localhost:3006',
   },
 
   // CORS
@@ -44,6 +45,7 @@ export default () => ({
     '/api/inv/health',
     '/api/cus/health',
     '/api/whms/health',
+    '/api/ord/health',
     // Auth endpoints
     '/api/iam/auth/login',
     '/api/iam/auth/forgot-password',
@@ -64,6 +66,7 @@ export default () => ({
   publicRoutePatterns: [
     /^\/api\/whms\/public\/.*/,
     /^\/api\/cus\/health\/.*/,
+    /^\/api\/ord\/guest\/.*/,
     /^\/api\/docs\/.*/,
   ],
 });
