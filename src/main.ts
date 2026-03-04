@@ -99,7 +99,7 @@ async function bootstrap() {
         changeOrigin: true,
         logLevel: 'silent',
         onProxyReq: (proxyReq, req: any) => {
-          if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+          if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.body) {
             const ct = req.headers['content-type'] || '';
             if (ct.includes('application/json')) {
               const body = JSON.stringify(req.body);
