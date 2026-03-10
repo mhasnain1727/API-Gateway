@@ -91,6 +91,26 @@ async function bootstrap() {
     { path: '/api/cus', target: configService.get<string>('services.customer', 'http://localhost:3004'), name: 'Customer' },
     { path: '/api/whms', target: configService.get<string>('services.warehouse', 'http://localhost:3005'), name: 'Warehouse' },
   ];
+
+  // Proxy static assets (images/uploads) to inventory service
+  const inventoryTarget = configService.get<string>('services.inventory', 'http://localhost:3003');
+  for (const assetPath of ['/images', '/uploads']) {
+    app.use(
+      assetPath,
+      createProxyMiddleware({
+        target: inventoryTarget,
+        changeOrigin: true,
+        logLevel: 'silent',
+        onError: (err, req, res: any) => {
+          logger.warn(`[Static Assets] Proxy error for ${assetPath}: ${err.message}`);
+          if (!res.headersSent) {
+            res.status(404).json({ statusCode: 404, message: 'Asset not found' });
+          }
+        },
+      }),
+    );
+    logger.log(`Proxy: ${assetPath} -> ${inventoryTarget}`);
+  }
   for (const { path: basePath, target, name } of proxyTargets) {
     app.use(
       basePath,
