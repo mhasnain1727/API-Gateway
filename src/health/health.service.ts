@@ -47,6 +47,11 @@ export class HealthService {
         url: this.configService.get<string>('services.warehouse', 'http://localhost:3005'),
         healthPath: '/api/whms/health',
       },
+      {
+        name: 'Order Service',
+        url: this.configService.get<string>('services.order', 'http://localhost:3006'),
+        healthPath: '/api/ord/health',
+      },
     ];
   }
 

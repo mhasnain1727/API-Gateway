@@ -98,6 +98,7 @@ export class AppModule implements NestModule {
         'api/cus/health',
         'api/cus/health/(.*)',
         'api/whms/health',
+        'api/ord/health',
         // Auth endpoints
         'api/iam/auth/login',
         'api/iam/auth/forgot-password',

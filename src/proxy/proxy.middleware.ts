@@ -55,6 +55,12 @@ export class ProxyMiddleware implements NestMiddleware {
         name: 'Warehouse Service',
         key: 'warehouse-service',
       },
+      {
+        prefix: '/api/ord',
+        target: this.configService.get<string>('services.order', 'http://localhost:3006'),
+        name: 'Order Service',
+        key: 'order-service',
+      },
     ];
 
     this.corsOrigins = this.configService

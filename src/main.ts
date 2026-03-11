@@ -19,7 +19,7 @@ async function bootstrap() {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   // CORS: must run first so every response (including proxied) gets CORS headers
-  const corsOriginsStr = configService.get<string>('cors.origins') ?? configService.get<string>('CORS_ORIGINS') ?? 'http://localhost:4200';
+  const corsOriginsStr = configService.get<string>('cors.origins') ?? configService.get<string>('CORS_ORIGINS') ?? 'http://localhost:4200,http://localhost:3008,http://localhost:3005';
   const allowedOrigins = corsOriginsStr.split(',').map((o) => o.trim());
   const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -90,6 +90,7 @@ async function bootstrap() {
     { path: '/api/inv', target: configService.get<string>('services.inventory', 'http://localhost:3003'), name: 'Inventory' },
     { path: '/api/cus', target: configService.get<string>('services.customer', 'http://localhost:3004'), name: 'Customer' },
     { path: '/api/whms', target: configService.get<string>('services.warehouse', 'http://localhost:3005'), name: 'Warehouse' },
+    { path: '/api/ord', target: configService.get<string>('services.order', 'http://localhost:3006'), name: 'Order' },
   ];
   for (const { path: basePath, target, name } of proxyTargets) {
     app.use(
@@ -170,6 +171,7 @@ Centralized entry point for all ICS microservices.
 - **/api/inv/** - Inventory Service (port 3003)
 - **/api/cus/** - Customer Service (port 3004)
 - **/api/whms/** - Warehouse Management Service (port 3005)
+- **/api/ord/** - Order Service (port 3006)
         `,
       )
       .setVersion('1.0.0')
