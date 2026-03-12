@@ -23,7 +23,7 @@ async function bootstrap() {
   const allowedOrigins = corsOriginsStr.split(',').map((o) => o.trim());
   const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key',
+    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key, x-channel',
     'Access-Control-Allow-Credentials': 'true',
   };
 
@@ -76,7 +76,7 @@ async function bootstrap() {
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key, x-channel',
   });
 
   // Body Parser (with increased limit for file uploads)
