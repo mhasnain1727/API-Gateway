@@ -90,6 +90,7 @@ async function bootstrap() {
     { path: '/api/inv', target: configService.get<string>('services.inventory', 'http://localhost:3003'), name: 'Inventory' },
     { path: '/api/cus', target: configService.get<string>('services.customer', 'http://localhost:3004'), name: 'Customer' },
     { path: '/api/whms', target: configService.get<string>('services.warehouse', 'http://localhost:3005'), name: 'Warehouse' },
+    { path: '/api/ord', target: configService.get<string>('services.order', 'http://localhost:3006'), name: 'Order' },
   ];
 
   // Proxy static assets (images/uploads) to inventory service
