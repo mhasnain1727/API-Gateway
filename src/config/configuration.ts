@@ -18,9 +18,11 @@ export default () => ({
     order: process.env.ORDER_SERVICE_URL || 'http://localhost:3006',
   },
 
-  // CORS
+  // CORS — comma-separated; include ports your frontend actually uses (3000 CRA/Next, 4200 Angular, 5173 Vite)
   cors: {
-    origins: process.env.CORS_ORIGINS || 'http://localhost:4200',
+    origins:
+      process.env.CORS_ORIGINS ||
+      'http://localhost:3000,http://localhost:4200,http://localhost:4201,http://localhost:5173,http://localhost:3008,http://127.0.0.1:3000,http://127.0.0.1:4200,http://127.0.0.1:5173,http://127.0.0.1:3008',
   },
 
   // Rate Limiting

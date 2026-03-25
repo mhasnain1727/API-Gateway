@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import { CircuitBreakerService, CircuitState } from '../common/services/circuit-breaker.service';
 import { RequestDeduplicationService } from '../common/services/request-deduplication.service';
+import { resolveCorsAllowOrigin } from '../common/cors.util';
 
 interface ServiceConfig {
   prefix: string;
@@ -17,6 +18,7 @@ export class ProxyMiddleware implements NestMiddleware {
   private readonly logger = new Logger(ProxyMiddleware.name);
   private readonly services: ServiceConfig[];
   private readonly corsOrigins: string[];
+  private readonly nodeEnv: string;
   private readonly proxies: Map<string, ReturnType<typeof createProxyMiddleware>>;
 
   constructor(
@@ -64,9 +66,14 @@ export class ProxyMiddleware implements NestMiddleware {
     ];
 
     this.corsOrigins = this.configService
-      .get<string>('cors.origins', 'http://localhost:4200')
+      .get<string>(
+        'cors.origins',
+        'http://localhost:3000,http://localhost:4200,http://localhost:4201,http://localhost:5173,http://localhost:3008,http://127.0.0.1:3000,http://127.0.0.1:4200,http://127.0.0.1:5173,http://127.0.0.1:3008',
+      )
       .split(',')
       .map((o) => o.trim());
+
+    this.nodeEnv = this.configService.get<string>('nodeEnv', 'development');
 
     this.proxies = new Map();
     this.initializeProxies();
@@ -155,10 +162,8 @@ export class ProxyMiddleware implements NestMiddleware {
         delete proxyRes.headers['access-control-allow-headers'];
 
         // Add gateway CORS headers
-        const origin = req.headers.origin;
-        const allowOrigin = origin && this.corsOrigins.includes(origin)
-          ? origin
-          : this.corsOrigins[0];
+        const origin = req.headers.origin as string | undefined;
+        const allowOrigin = resolveCorsAllowOrigin(origin, this.corsOrigins, this.nodeEnv);
 
         res.setHeader('Access-Control-Allow-Origin', allowOrigin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');

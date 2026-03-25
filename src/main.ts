@@ -7,6 +7,7 @@ import * as bodyParser from 'body-parser';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { AppModule } from './app.module';
 import { GlobalHttpExceptionFilter } from './common/filters';
+import { resolveCorsAllowOrigin } from './common/cors.util';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -19,7 +20,10 @@ async function bootstrap() {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   // CORS: must run first so every response (including proxied) gets CORS headers
-  const corsOriginsStr = configService.get<string>('cors.origins') ?? configService.get<string>('CORS_ORIGINS') ?? 'http://localhost:4200';
+  const corsOriginsStr =
+    configService.get<string>('cors.origins') ??
+    configService.get<string>('CORS_ORIGINS') ??
+    'http://localhost:3000,http://localhost:4200,http://localhost:4201,http://localhost:5173,http://localhost:3008,http://127.0.0.1:3000,http://127.0.0.1:4200,http://127.0.0.1:5173,http://127.0.0.1:3008';
   const allowedOrigins = corsOriginsStr.split(',').map((o) => o.trim());
   const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -28,10 +32,8 @@ async function bootstrap() {
   };
 
   app.use((req: any, res: any, next: any) => {
-    const origin = req.headers.origin;
-    const allowOrigin = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))
-      ? origin
-      : allowedOrigins[0] || 'http://localhost:4200';
+    const origin = req.headers.origin as string | undefined;
+    const allowOrigin = resolveCorsAllowOrigin(origin, allowedOrigins, nodeEnv);
     res.setHeader('Access-Control-Allow-Origin', allowOrigin);
     Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
 
@@ -48,6 +50,8 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
       crossOriginEmbedderPolicy: false,
+      // Default same-origin CORP can block cross-origin browser access to API responses
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 
@@ -68,11 +72,7 @@ async function bootstrap() {
   // Nest CORS (for non-proxy routes)
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, origin || allowedOrigins[0]);
-      } else {
-        callback(null, allowedOrigins[0]);
-      }
+      callback(null, resolveCorsAllowOrigin(origin, allowedOrigins, nodeEnv));
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -132,9 +132,12 @@ async function bootstrap() {
         onProxyRes: (proxyRes, req: any) => {
           delete proxyRes.headers['access-control-allow-origin'];
           delete proxyRes.headers['access-control-allow-credentials'];
-          const origin = req.headers.origin;
-          const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-          proxyRes.headers['access-control-allow-origin'] = allowOrigin;
+          const origin = req.headers.origin as string | undefined;
+          proxyRes.headers['access-control-allow-origin'] = resolveCorsAllowOrigin(
+            origin,
+            allowedOrigins,
+            nodeEnv,
+          );
           proxyRes.headers['access-control-allow-credentials'] = 'true';
         },
         onError: (err, req, res: any) => {
