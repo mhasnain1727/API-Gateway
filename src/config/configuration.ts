@@ -38,6 +38,11 @@ export default () => ({
     enableAudit: process.env.ENABLE_AUDIT_LOG === 'true',
   },
 
+  // Storefront OAuth clients (comma-separated client_id / azp values). When set, those tokens may only call storefront allowlisted paths.
+  ecom: {
+    oauthClientIds: process.env.ECOM_OAUTH_CLIENT_IDS || '',
+  },
+
   // Public Routes (no token required)
   publicRoutes: [
     // Health checks

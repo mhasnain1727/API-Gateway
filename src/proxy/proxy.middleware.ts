@@ -170,7 +170,7 @@ export class ProxyMiddleware implements NestMiddleware {
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
         res.setHeader(
           'Access-Control-Allow-Headers',
-          'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key',
+          'Origin, X-Requested-With, Content-Type, Accept, Authorization, authorization, x-access-token, X-Idempotency-Key, x-channel, X-Channel',
         );
 
         // Add request ID to response

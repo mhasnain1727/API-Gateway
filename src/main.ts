@@ -8,6 +8,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { AppModule } from './app.module';
 import { GlobalHttpExceptionFilter } from './common/filters';
 import { resolveCorsAllowOrigin } from './common/cors.util';
+import { createStorefrontRoutePolicyMiddleware } from './common/storefront-route-policy.middleware';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -17,7 +18,8 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const nodeEnv =
+    configService.get<string>('nodeEnv') ?? process.env.NODE_ENV ?? 'development';
 
   // CORS: must run first so every response (including proxied) gets CORS headers
   const corsOriginsStr =
@@ -27,7 +29,9 @@ async function bootstrap() {
   const allowedOrigins = corsOriginsStr.split(',').map((o) => o.trim());
   const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key',
+    // Must list every custom header the storefront sends (preflight checks this). Ecom uses x-channel on axiosInstance.
+    'Access-Control-Allow-Headers':
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, authorization, x-access-token, X-Idempotency-Key, x-channel, X-Channel',
     'Access-Control-Allow-Credentials': 'true',
   };
 
@@ -76,12 +80,16 @@ async function bootstrap() {
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token, X-Idempotency-Key',
+    allowedHeaders:
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, authorization, x-access-token, X-Idempotency-Key, x-channel, X-Channel',
   });
 
   // Body Parser (with increased limit for file uploads)
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+  // Restrict configured storefront OAuth clients to storefront API paths (before service proxies).
+  app.use(createStorefrontRoutePolicyMiddleware(configService));
 
   // Proxy to microservices at Express level (so /api/iam, /api/authz etc. are handled before Nest router)
   const proxyTargets: { path: string; target: string; name: string }[] = [
@@ -102,6 +110,17 @@ async function bootstrap() {
         target: inventoryTarget,
         changeOrigin: true,
         logLevel: 'silent',
+        onProxyRes: (proxyRes, req: any) => {
+          delete proxyRes.headers['access-control-allow-origin'];
+          delete proxyRes.headers['access-control-allow-credentials'];
+          const origin = req.headers.origin as string | undefined;
+          proxyRes.headers['access-control-allow-origin'] = resolveCorsAllowOrigin(
+            origin,
+            allowedOrigins,
+            nodeEnv,
+          );
+          proxyRes.headers['access-control-allow-credentials'] = 'true';
+        },
         onError: (err, req, res: any) => {
           logger.warn(`[Static Assets] Proxy error for ${assetPath}: ${err.message}`);
           if (!res.headersSent) {

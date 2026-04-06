@@ -117,6 +117,25 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains (production only)
 - `GET /api/whms/public/purchase-orders/:token`
 - `POST /api/whms/public/purchase-orders/acknowledge`
 
+## Storefront OAuth route policy (optional)
+
+Set **`ECOM_OAUTH_CLIENT_IDS`** to a comma-separated list of OAuth2 **client_id** values (JWT **`azp`** or **`client_id`** claim) used by the ecom storefront. When this variable is set, requests that present a Bearer JWT from one of those clients may **only** reach the following prefixes; all other `/api/*` paths receive **403 Forbidden**.
+
+| Allowed prefix | Purpose |
+|----------------|---------|
+| `/api/cus/auth/*` | Customer signup / signin / password reset |
+| `/api/cus/me`, `/api/cus/me/*` | Authenticated customer profile |
+| `/api/cus/health/*` | Health |
+| `/api/ord/me/*` | Customer-scoped orders |
+| `/api/ord/health/*` | Health |
+| `/api/inv/public/*` | Guest catalog (DEFAULT pricing) |
+| `/api/inv/customer/*` | Logged-in catalog (server-resolved pricing) |
+| `/api/inv/health/*` | Health |
+| `/api/authz/token/refresh`, `/api/authz/oauth/token` | Tokens |
+| `/api/authz/health/*`, `/api/iam/health/*`, `/api/whms/health/*`, `/api/gateway/health/*` | Health |
+
+Admin dashboards and staff tools should use a **different** OAuth client so they are not listed in `ECOM_OAUTH_CLIENT_IDS`. If the variable is **unset**, this check is disabled (backward compatible).
+
 ## Installation
 
 ```bash
